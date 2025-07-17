@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app: vault
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      containers:
+      - name: vault
+        image: vault:1.15.2
+        ports:
+        - containerPort: 8200
+          name: vault-port
+          protocol: TCP
+        - containerPort: 8201
+          name: cluster-port
+          protocol: TCP
+        env:
+        - name: VAULT_LOCAL_CONFIG
+          valueFrom:
+            configMapKeyRef:
+              name: vault-config
+              key: vault-config.json
+        - name: VAULT_ADDR
+          value: "http://127.0.0.1:8200"
+        - name: VAULT_API_ADDR
+          value: "http://$(POD_IP):8200"
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        securityContext:
+          capabilities:
+            add: ["IPC_LOCK"]
+        volumeMounts:
+        - name: vault-data
+          mountPath: /vault/data
+        - name: vault-config-volume
+          mountPath: /vault/config
+        command:
+        - "/bin/sh"
+        - "-c"
+        - |
+          cp /etc/vault-config/vault-config.json /vault/config/ && 
+          vault server -config=/vault/config/vault-config.json
+      volumes:
+      - name: vault-data
+        hostPath:
+          path: /opt/vault-data
+          type: DirectoryOrCreate
+      - name: vault-config-volume
+        emptyDir: {}
+      - name: vault-config
+        configMap:
+          name: vault-config
