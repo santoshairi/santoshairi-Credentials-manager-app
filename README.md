@@ -68,4 +68,4 @@ You can access Vault using the following methods:
 3. Set up policies for access control
 4. Configure audit logging
 5. Set up auto-unseal for production use
-6. save your keys for future use
+6. save your keys for future use.
